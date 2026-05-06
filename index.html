@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6학년 과학 - 지시약 실험 및 용액 분류</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Nanum Gothic', sans-serif;
+            background-color: #f8fafc;
+            user-select: none;
+        }
+
+        .well-row {
+            display: flex;
+            gap: 15px;
+            padding: 20px;
+            background: #e2e8f0;
+            border-radius: 20px;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .well {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 4px inset #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .well.draggable {
+            cursor: grab;
+            border: 4px solid #3b82f6;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .well.classified {
+            border: 4px solid #10b981;
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        .liquid {
+            position: absolute;
+            width: 85%;
+            height: 85%;
+            border-radius: 50%;
+            opacity: 0;
+            transition: background-color 0.6s ease, opacity 0.4s ease;
+            z-index: 1;
+        }
+
+        .well-label {
+            position: absolute;
+            top: -25px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .indicator-label {
+            writing-mode: vertical-lr;
+            font-weight: bold;
+            color: #64748b;
+            padding-right: 10px;
+            text-align: center;
+        }
+
+        .litmus-paper {
+            width: 12px;
+            height: 35px;
+            margin: 0 2px;
+            z-index: 5;
+            border-radius: 2px;
+            transition: background-color 0.6s ease;
+        }
+
+        .active-tool {
+            outline: 4px solid #3b82f6;
+            transform: scale(1.05);
+        }
+
+        .basket {
+            min-height: 180px;
+            border: 3px dashed #cbd5e1;
+            border-radius: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 10px;
+            padding: 50px 20px 20px 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .basket-acid { background-color: #fef2f2; border-color: #fecaca; }
+        .basket-base { background-color: #f0f9ff; border-color: #bae6fd; }
+
+        .basket-title {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .mini-tag {
+            background: white;
+            padding: 8px 16px;
+            border-radius: 99px;
+            border: 2px solid #e2e8f0;
+            font-weight: bold;
+            font-size: 13px;
+            color: #1e293b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Modal Styles */
+        #help-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="p-6">
+    <!-- Help Modal -->
+    <div id="help-modal">
+        <div class="bg-white p-8 rounded-3xl max-w-md w-full shadow-2xl">
+            <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                📖 실험 및 활용 방법
+            </h2>
+            <ul class="space-y-3 text-slate-600 text-sm leading-relaxed">
+                <li>1. <b>용액 선택</b>: 왼쪽 메뉴에서 실험할 용액을 고르고 빈 홈판을 클릭해 채웁니다.</li>
+                <li>2. <b>지시약 선택</b>: 사용하고 싶은 지시약을 골라 용액이 담긴 홈판을 클릭합니다.</li>
+                <li>3. <b>관찰</b>: 리트머스 종이나 용액의 색깔 변화를 꼼꼼히 확인합니다.</li>
+                <li>4. <b>분류</b>: 변화가 완료된 홈판을 드래그하여 아래의 <b>산성</b> 또는 <b>염기성</b> 상자에 담습니다.</li>
+                <li>5. <b>팁</b>: 이미 상자에 넣은 용액은 중복해서 넣을 수 없습니다!</li>
+            </ul>
+            <button onclick="toggleHelp()" class="mt-6 w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition">
+                이해했어요!
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-center md:text-left">
+                <h1 class="text-3xl font-black text-slate-800">🧪 지시약 실험 및 용액 분류</h1>
+                <p class="text-slate-500 mt-1">용액의 반응을 관찰하고 성질에 따라 분류해 봅시다.</p>
+            </div>
+            <button onclick="toggleHelp()" class="bg-amber-100 text-amber-700 font-bold px-6 py-3 rounded-2xl hover:bg-amber-200 transition flex items-center gap-2">
+                ❓ 활용방법
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Left: Tools -->
+            <div class="lg:col-span-1 space-y-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                    <h2 class="font-bold mb-3 text-indigo-600 text-sm">1. 용액 선택</h2>
+                    <div class="grid grid-cols-1 gap-2" id="sol-list"></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                    <h2 class="font-bold mb-3 text-pink-600 text-sm">2. 지시약 선택</h2>
+                    <div class="space-y-2" id="ind-list"></div>
+                </div>
+
+                <button onclick="location.reload()" class="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl hover:bg-black transition">
+                    🔄 실험실 초기화
+                </button>
+            </div>
+
+            <!-- Right: Experiment & Sorting -->
+            <div class="lg:col-span-3 space-y-8">
+                <!-- Experiment Plate -->
+                <div class="bg-white p-8 rounded-3xl shadow-md border border-slate-100">
+                    <div id="experiment-area">
+                        <div class="flex items-center">
+                            <div class="indicator-label text-[10px]">리트머스</div>
+                            <div class="well-row" id="row-litmus"></div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="indicator-label text-[10px]">페놀프탈레인</div>
+                            <div class="well-row" id="row-pheno"></div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="indicator-label text-[10px]">자주색 양배추</div>
+                            <div class="well-row" id="row-cabbage"></div>
+                        </div>
+                    </div>
+
+                    <div id="msg" class="text-center p-5 bg-slate-50 rounded-2xl font-bold text-slate-600 border border-slate-100 min-h-[80px] flex items-center justify-center text-sm px-10">
+                        왼쪽에서 용액을 선택하여 실험을 시작하세요.
+                    </div>
+                </div>
+
+                <!-- Sorting Baskets -->
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="basket basket-acid" id="box-acid" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'acid')">
+                        <div class="basket-title text-red-500">🔴 산성 용액 상자</div>
+                    </div>
+                    <div class="basket basket-base" id="box-base" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'base')">
+                        <div class="basket-title text-blue-500">🔵 염기성 용액 상자</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const solutions = [
+            { id: 'vinegar', name: '식초', type: 'acid', color: '#fcfcfc' },
+            { id: 'lemon', name: '레몬즙', type: 'acid', color: '#fff9c4' },
+            { id: 'hcl', name: '묽은 염산', type: 'acid', color: '#f1f5f9' },
+            { id: 'soap', name: '비눗물', type: 'base', color: '#f8fafc' },
+            { id: 'cleaner', name: '유리세정제', type: 'base', color: '#e0f2fe' },
+            { id: 'naoh', name: '묽은 수산화 나트륨', type: 'base', color: '#f1f5f9' }
+        ];
+
+        const indicators = [
+            { id: 'litmus', name: '리트머스 종이', grad: 'linear-gradient(to bottom, #f87171, #60a5fa)' },
+            { id: 'pheno', name: '페놀프탈레인', grad: '#fee2e2' },
+            { id: 'cabbage', name: '자주색 양배추', grad: '#a855f7' }
+        ];
+
+        let curSol = null;
+        let curInd = null;
+        let wellsData = {};
+        let classifiedSolutions = new Set();
+
+        function init() {
+            const sList = document.getElementById('sol-list');
+            solutions.forEach(s => {
+                const b = document.createElement('button');
+                b.className = 'w-full text-left p-3 rounded-xl border-2 border-slate-100 font-bold text-xs hover:bg-indigo-50 transition mb-1';
+                b.innerText = s.name;
+                b.onclick = () => {
+                    curSol = s; curInd = null;
+                    document.querySelectorAll('button, .ind-tool').forEach(el => el.classList.remove('active-tool', 'bg-indigo-50', 'border-indigo-400'));
+                    b.classList.add('active-tool', 'bg-indigo-50', 'border-indigo-400');
+                    updateMsg(`[${s.name}] 용액을 선택했습니다. 빈 홈판에 넣어주세요.`);
+                };
+                sList.appendChild(b);
+            });
+
+            const iList = document.getElementById('ind-list');
+            indicators.forEach(i => {
+                const d = document.createElement('div');
+                d.className = 'ind-tool p-3 rounded-xl border-2 border-slate-100 flex items-center gap-3 cursor-pointer hover:bg-pink-50 transition';
+                d.innerHTML = `<div class="w-5 h-5 rounded-full" style="background:${i.grad}"></div><span class="text-xs font-bold">${i.name}</span>`;
+                d.onclick = () => {
+                    curInd = i; curSol = null;
+                    document.querySelectorAll('button, .ind-tool').forEach(el => el.classList.remove('active-tool', 'bg-indigo-50', 'border-indigo-400', 'bg-pink-50', 'border-pink-400'));
+                    d.classList.add('active-tool', 'bg-pink-50', 'border-pink-400');
+                    updateMsg(`[${i.name}] 지시약을 선택했습니다. 용액이 있는 홈판을 클릭하세요.`);
+                };
+                iList.appendChild(d);
+            });
+
+            ['litmus', 'pheno', 'cabbage'].forEach(rowId => {
+                const container = document.getElementById(`row-${rowId}`);
+                for (let i = 0; i < 6; i++) {
+                    const id = `${rowId}-${i}`;
+                    const w = document.createElement('div');
+                    w.className = 'well';
+                    w.id = `well-${id}`;
+                    w.innerHTML = `
+                        <div class="well-label" id="label-${id}"></div>
+                        <div class="liquid" id="liq-${id}"></div>
+                        <div class="flex" id="lit-cont-${id}"></div>
+                    `;
+                    w.onclick = () => handleWell(rowId, i);
+                    w.draggable = false;
+                    w.ondragstart = (e) => {
+                        if(w.draggable) e.dataTransfer.setData('wellId', id);
+                    };
+                    container.appendChild(w);
+                    wellsData[id] = { sol: null, tested: false, classified: false };
+                }
+            });
+        }
+
+        function handleWell(row, idx) {
+            const id = `${row}-${idx}`;
+            const state = wellsData[id];
+            const wellEl = document.getElementById(`well-${id}`);
+            const liq = document.getElementById(`liq-${id}`);
+            const label = document.getElementById(`label-${id}`);
+
+            if (curSol) {
+                state.sol = { ...curSol };
+                state.tested = false;
+                state.classified = false;
+                wellEl.draggable = false;
+                wellEl.classList.remove('classified', 'draggable', 'shadow-lg');
+                liq.style.backgroundColor = curSol.color;
+                liq.style.opacity = '0.5';
+                label.innerText = curSol.name;
+                document.getElementById(`lit-cont-${id}`).innerHTML = '';
+                updateMsg(`홈판에 [${curSol.name}]을(를) 채웠습니다.`);
+            } else if (curInd) {
+                if (!state.sol) { return updateMsg("먼저 용액을 채워주세요!"); }
+                if (curInd.id !== row) { return updateMsg(`${row === 'litmus' ? '리트머스 종이' : row === 'pheno' ? '페놀프탈레인' : '자주색 양배추'} 줄에 맞는 지시약을 사용하세요.`); }
+                
+                state.tested = true;
+                applyReaction(id, state.sol, row);
+                
+                if(!classifiedSolutions.has(state.sol.name)) {
+                    wellEl.draggable = true;
+                    wellEl.classList.add('draggable', 'shadow-lg');
+                    updateMsg("실험 결과가 나타났습니다! 관찰한 내용을 바탕으로 상자에 분류해보세요.");
+                } else {
+                    state.classified = true;
+                    wellEl.classList.add('classified');
+                    updateMsg(`[${state.sol.name}]은(는) 이미 분류 상자에 담겨 있습니다.`);
+                }
+            }
+        }
+
+        function applyReaction(id, sol, indType) {
+            const liq = document.getElementById(`liq-${id}`);
+            const litCont = document.getElementById(`lit-cont-${id}`);
+
+            if (indType === 'litmus') {
+                litCont.innerHTML = `
+                    <div class="litmus-paper bg-red-400" id="rp-${id}"></div>
+                    <div class="litmus-paper bg-blue-400" id="bp-${id}"></div>
+                `;
+                setTimeout(() => {
+                    const rPaper = document.getElementById(`rp-${id}`);
+                    const bPaper = document.getElementById(`bp-${id}`);
+                    if(rPaper && bPaper) {
+                        if (sol.type === 'acid') bPaper.style.backgroundColor = '#f87171'; // Blue to Red
+                        else rPaper.style.backgroundColor = '#60a5fa'; // Red to Blue
+                    }
+                }, 100);
+            } else if (indType === 'pheno') {
+                if (sol.type === 'base') liq.style.backgroundColor = '#db2777'; // Pink
+                liq.style.opacity = '0.9';
+            } else if (indType === 'cabbage') {
+                liq.style.backgroundColor = (sol.type === 'acid') ? '#ef4444' : '#22c55e'; // Red/Pink vs Green/Yellow
+                liq.style.opacity = '0.9';
+            }
+        }
+
+        function allowDrop(e) { e.preventDefault(); }
+
+        function handleDrop(e, targetType) {
+            e.preventDefault();
+            const id = e.dataTransfer.getData('wellId');
+            if (!id) return;
+
+            const state = wellsData[id];
+            const rowType = id.split('-')[0];
+            const wellEl = document.getElementById(`well-${id}`);
+
+            if (classifiedSolutions.has(state.sol.name)) {
+                updateMsg(`[${state.sol.name}]은(는) 이미 상자에 있습니다.`);
+                markClassified(id);
+                return;
+            }
+
+            if (state.sol.type === targetType) {
+                const basket = document.getElementById(`box-${targetType}`);
+                const tag = document.createElement('div');
+                tag.className = 'mini-tag';
+                tag.innerText = state.sol.name;
+                basket.appendChild(tag);
+
+                classifiedSolutions.add(state.sol.name);
+                markClassified(id);
+                updateMsg(`정답입니다! [${state.sol.name}] 분류를 마쳤습니다.`);
+            } else {
+                // 피드백 시스템: 지시약 반응을 바탕으로 안내
+                let feedback = "";
+                if (rowType === 'litmus') {
+                    feedback = state.sol.type === 'acid' 
+                        ? "파란색 리트머스 종이가 빨간색으로 변했습니다." 
+                        : "빨간색 리트머스 종이가 파란색으로 변했습니다.";
+                } else if (rowType === 'pheno') {
+                    feedback = state.sol.type === 'acid'
+                        ? "페놀프탈레인 용액의 색깔이 변하지 않았습니다."
+                        : "페놀프탈레인 용액이 붉은색으로 변했습니다.";
+                } else if (rowType === 'cabbage') {
+                    feedback = state.sol.type === 'acid'
+                        ? "자주색 양배추 지시약이 붉은색 계열로 변했습니다."
+                        : "자주색 양배추 지시약이 푸른색이나 노란색 계열로 변했습니다.";
+                }
+                updateMsg(`${feedback} 다시 한번 생각해볼까요?`);
+            }
+        }
+
+        function markClassified(id) {
+            const state = wellsData[id];
+            const wellEl = document.getElementById(`well-${id}`);
+            state.classified = true;
+            wellEl.draggable = false;
+            wellEl.classList.remove('draggable', 'shadow-lg');
+            wellEl.classList.add('classified');
+        }
+
+        function updateMsg(t) { 
+            const msgEl = document.getElementById('msg');
+            msgEl.innerText = t;
+            msgEl.classList.remove('animate-pulse');
+            void msgEl.offsetWidth; // Trigger reflow
+            msgEl.classList.add('animate-pulse');
+        }
+
+        function toggleHelp() {
+            const modal = document.getElementById('help-modal');
+            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
